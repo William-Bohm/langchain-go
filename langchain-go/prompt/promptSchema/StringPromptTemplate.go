@@ -2,6 +2,7 @@ package promptSchema
 
 import (
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/outputParser/outputParserSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/rootSchema"
 	"strings"
 )
@@ -45,7 +46,7 @@ func (spt *StringPromptTemplate) FormatPrompt(kwargs map[string]interface{}) (Pr
 	return StringPromptValue{Text: text}, nil
 }
 
-func NewStringPromptTemplate(inputVars []string, outputParser BaseOutputParser, partialVars map[string]interface{}, promptType string) StringPromptTemplate {
+func NewStringPromptTemplate(inputVars []string, outputParser outputParserSchema.BaseOutputParser, partialVars map[string]interface{}, promptType string) StringPromptTemplate {
 	baseTemplate := NewBasePromptTemplate(inputVars, outputParser, partialVars, promptType)
 	return StringPromptTemplate{BasePromptTemplate: baseTemplate}
 }

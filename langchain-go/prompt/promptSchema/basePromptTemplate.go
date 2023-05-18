@@ -141,7 +141,7 @@ func (bpt *BasePromptTemplate) Save(filePath string) error {
 	return nil
 }
 
-func NewBasePromptTemplate(inputVars []string, outputParser BaseOutputParser, partialVars map[string]interface{}, promptType string) BasePromptTemplate {
+func NewBasePromptTemplate(inputVars []string, outputParser outputParserSchema.BaseOutputParser, partialVars map[string]interface{}, promptType string) BasePromptTemplate {
 	return BasePromptTemplate{
 		InputVariables:   inputVars,
 		OutputParser:     outputParser,

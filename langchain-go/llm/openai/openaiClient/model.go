@@ -32,7 +32,7 @@ const (
 	CodeCushman001   Model = "code-cushman-001"
 )
 
-func getEncodingForModel(model Model) (tokenizer.Codec, error) {
+func GetEncodingForModel(model Model) (tokenizer.Codec, error) {
 	/*
 		helper function to determine the correct openAI token encoder depending upon the model name
 

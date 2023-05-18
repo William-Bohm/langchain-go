@@ -2,6 +2,7 @@ package callbacks
 
 import (
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/agent/agentSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/tools"
@@ -42,7 +43,7 @@ func (h *StdOutCallbackHandler) OnChainError(err error, kwargs map[string]interf
 func (h *StdOutCallbackHandler) OnToolStart(serialized map[string]interface{}, inputStr string, kwargs map[string]interface{}) {
 }
 
-func (h *StdOutCallbackHandler) OnAgentAction(action callbackSchema.AgentAction, color *string, kwargs map[string]interface{}) {
+func (h *StdOutCallbackHandler) OnAgentAction(action agentSchema.AgentAction, color *string, kwargs map[string]interface{}) {
 	printColor := h.Color
 	if color != nil {
 		printColor = color
@@ -74,7 +75,7 @@ func (h *StdOutCallbackHandler) OnText(text string, color *string, end string, k
 	tools.PrintText(text, printColor, end)
 }
 
-func (h *StdOutCallbackHandler) OnAgentFinish(finish callbackSchema.AgentFinish, color *string, kwargs map[string]interface{}) {
+func (h *StdOutCallbackHandler) OnAgentFinish(finish agentSchema.AgentFinish, color *string, kwargs map[string]interface{}) {
 	printColor := h.Color
 	if color != nil {
 		printColor = color

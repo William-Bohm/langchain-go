@@ -2,7 +2,7 @@ package callbacks
 
 import (
 	"fmt"
-	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
+	"github.com/William-Bohm/langchain-go/langchain-go/agent/agentSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
 )
 
@@ -45,7 +45,7 @@ func (s *StreamlitCallbackHandler) OnToolStart(serialized map[string]interface{}
 	// Do nothing.
 }
 
-func (s *StreamlitCallbackHandler) OnAgentAction(action callbackSchema.AgentAction, kwargs map[string]interface{}) {
+func (s *StreamlitCallbackHandler) OnAgentAction(action agentSchema.AgentAction, kwargs map[string]interface{}) {
 	fmt.Println(action.Log)
 }
 
@@ -62,6 +62,6 @@ func (s *StreamlitCallbackHandler) OnText(text string, kwargs map[string]interfa
 	fmt.Println(text)
 }
 
-func (s *StreamlitCallbackHandler) OnAgentFinish(finish callbackSchema.AgentFinish, kwargs map[string]interface{}) {
+func (s *StreamlitCallbackHandler) OnAgentFinish(finish agentSchema.AgentFinish, kwargs map[string]interface{}) {
 	fmt.Println(finish.Log)
 }

@@ -2,6 +2,7 @@ package promptSchema
 
 import (
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/outputParser/outputParserSchema"
 	"os"
 	"regexp"
 	"strings"
@@ -60,7 +61,7 @@ func NewPromptTemplateFromFile(templateFile string, inputVariables []string, tem
 	}, nil
 }
 
-func NewPromptTemplateFromTemplate(templateStr string, templateFormat string, validateTemplate bool, outputParser BaseOutputParser, partial map[string]interface{}) (*PromptTemplate, error) {
+func NewPromptTemplateFromTemplate(templateStr string, templateFormat string, validateTemplate bool, outputParser outputParserSchema.BaseOutputParser, partial map[string]interface{}) (*PromptTemplate, error) {
 	// TODO: add functionality that doesnt use regex!
 	if templateFormat == "" || templateFormat == "default" {
 		templateFormat = "Text/template"

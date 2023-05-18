@@ -55,9 +55,9 @@ func (c *LLMChain) prepPrompts(inputList []map[string]interface{}) ([]string, st
 		coloredText := tools.GetColoredText(p.ToString(), "green")
 		text := "Prompt after formatting:\n" + coloredText
 		callbackMap := make(map[string]interface{})
-		callbackMap["verbose"] = c.verbose
+		callbackMap["Verbose"] = c.Verbose
 		callbackMap["newline"] = "\n"
-		c.callbackManager.OnText(text, callbackMap)
+		c.CallbackManager.OnText(text, callbackMap)
 		if stopVal, ok := inputs["stop"]; ok && stopVal.(string) != stop {
 			return nil, "", errors.New("If `stop` is present in any inputs, should be present in all.")
 		}

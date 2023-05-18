@@ -6,6 +6,7 @@ import (
 	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/memory/memorySchema"
 	"path/filepath"
+	"reflect"
 )
 
 type Chain interface {
@@ -25,9 +26,9 @@ type Chain interface {
 }
 
 type BaseChain struct {
-	memory          memorySchema.BaseMemory
-	callbackManager callbackSchema.BaseCallbackManager
-	verbose         bool
+	Memory          memorySchema.BaseMemory
+	CallbackManager callbackSchema.BaseCallbackManager
+	Verbose         bool
 }
 
 func (bc *BaseChain) ChainType() string {
@@ -59,8 +60,39 @@ func (bc *BaseChain) ValidateOutputs(outputs map[string]string) error {
 
 	return nil
 }
-func (bc *BaseChain) Call(inputs map[string]string) (map[string]string, error) {
-	panic("LLMChain logic not implemented.")
+
+func (c *BaseChain) call(args map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
+func (c *BaseChain) Call(inputs map[string]interface{}, returnOnlyOutputs ...bool) (map[string]interface{}, error) {
+	var roo bool
+	if len(returnOnlyOutputs) > 0 {
+		roo = returnOnlyOutputs[0]
+	}
+
+	inputsPrep, err := c.PrepareInputs(inputs)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = c.CallbackManager.OnChainStart(map[string]interface{}{"name": reflect.TypeOf(c).Name()}, inputsPrep, c.Verbose)
+	if err != nil {
+		return nil, err
+	}
+
+	outputs, err := c.call(inputsPrep)
+	if err != nil {
+		_, _ = c.CallbackManager.OnChainError(err, c.Verbose)
+		return nil, err
+	}
+
+	_, err = c.CallbackManager.OnChainEnd(outputs, c.Verbose)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.PrepareOutputs(inputsPrep, outputs, roo), nil
 }
 
 func (bc *BaseChain) Execute(
@@ -79,14 +111,14 @@ func (bc *BaseChain) Execute(
 }
 
 func (bc *BaseChain) PrepareOutputs(
-	inputs map[string]string,
-	outputs map[string]string,
+	inputs map[string]interface{},
+	outputs map[string]interface{},
 	returnOnlyOutputs bool,
-) map[string]string {
+) map[string]interface{} {
 	if returnOnlyOutputs {
 		return outputs
 	}
-	merged := map[string]string{}
+	merged := map[string]interface{}{}
 	for k, v := range inputs {
 		merged[k] = v
 	}
@@ -96,8 +128,8 @@ func (bc *BaseChain) PrepareOutputs(
 	return merged
 }
 
-func (bc *BaseChain) PrepareInputs(inputs interface{}) (map[string]string, error) {
-	inputMap, ok := inputs.(map[string]string)
+func (bc *BaseChain) PrepareInputs(inputs interface{}) (map[string]interface{}, error) {
+	inputMap, ok := inputs.(map[string]interface{})
 	if !ok {
 		return nil, errors.New("inputs must be a map[string]string")
 	}
@@ -164,4 +196,26 @@ func mapKeys(m map[string]string) []string {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func (bc *BaseChain) Run(args ...interface{}) (string, error) {
+	if len(bc.OutputKeys()) != 1 {
+		return "", errors.New("`Run` not supported when there is not exactly one output key. Got " + fmt.Sprint(bc.OutputKeys))
+	}
+
+	if len(args) == 1 {
+		output, err := bc.Call(args[0].(map[string]interface{}))
+		if err != nil {
+			return "", err
+		}
+		return output[bc.OutputKeys()[0]].(string), nil
+	} else if len(args) == 0 {
+		output, err := bc.Call(nil)
+		if err != nil {
+			return "", err
+		}
+		return output[bc.OutputKeys()[0]].(string), nil
+	} else {
+		return "", errors.New("`Run` supported with either one positional argument or no arguments but not more than one. Got args: " + fmt.Sprint(args))
+	}
 }

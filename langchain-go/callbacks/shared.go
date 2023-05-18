@@ -1,6 +1,7 @@
 package callbacks
 
 import (
+	"github.com/William-Bohm/langchain-go/langchain-go/agent/agentSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
 	"sync"
@@ -80,13 +81,13 @@ func (s *SharedCallbackManager) OnText(text string, verbose bool, kwargs map[str
 	s.callbackManager.OnText(text, verbose, kwargs)
 }
 
-func (s *SharedCallbackManager) OnAgentFinish(finish callbackSchema.AgentFinish, verbose bool, kwargs map[string]interface{}) {
+func (s *SharedCallbackManager) OnAgentFinish(finish agentSchema.AgentFinish, verbose bool, kwargs map[string]interface{}) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.callbackManager.OnAgentFinish(finish, verbose, kwargs)
 }
 
-func (s *SharedCallbackManager) OnAgentAction(action callbackSchema.AgentAction, verbose bool, kwargs map[string]interface{}) {
+func (s *SharedCallbackManager) OnAgentAction(action agentSchema.AgentAction, verbose bool, kwargs map[string]interface{}) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.callbackManager.OnAgentAction(action, verbose, kwargs)

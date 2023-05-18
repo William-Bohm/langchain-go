@@ -3,22 +3,24 @@ package memory
 import (
 	"fmt"
 	"github.com/William-Bohm/langchain-go/langchain-go/memory/chatMessageHistories"
+	"github.com/William-Bohm/langchain-go/langchain-go/memory/memorySchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/rootSchema"
 )
 
 type ConversationBufferMemory struct {
+	memorySchema.BaseMemory
 	HumanPrefix string
 	AIPrefix    string
 	MemoryKey   string
 	ChatMemory  chatMessageHistories.ChatMessageHistory
 }
 
-func NewConversationBufferMemory(chatMemory chatMessageHistories.ChatMessageHistory) *ConversationBufferMemory {
+func NewConversationBufferMemory(chatMemory *chatMessageHistories.ChatMessageHistory) *ConversationBufferMemory {
 	return &ConversationBufferMemory{
 		HumanPrefix: "Human",
 		AIPrefix:    "AI",
 		MemoryKey:   "history",
-		ChatMemory:  chatMemory,
+		ChatMemory:  *chatMemory,
 	}
 }
 
@@ -27,12 +29,12 @@ func (c *ConversationBufferMemory) Buffer() string {
 	return getBufferString(messages, c.HumanPrefix, c.AIPrefix)
 }
 
-func (c *ConversationBufferMemory) MemoryVariables() []string {
-	return []string{c.MemoryKey}
+func (c *ConversationBufferMemory) MemoryVariables() ([]string, error) {
+	return []string{c.MemoryKey}, nil
 }
 
-func (c *ConversationBufferMemory) LoadMemoryVariables(inputs map[string]interface{}) map[string]interface{} {
-	return map[string]interface{}{c.MemoryKey: c.Buffer()}
+func (c *ConversationBufferMemory) LoadMemoryVariables(inputs map[string]interface{}) (map[string]interface{}, error) {
+	return map[string]interface{}{c.MemoryKey: c.Buffer()}, nil
 }
 
 type ConversationStringBufferMemory struct {
@@ -56,8 +58,8 @@ func (c *ConversationStringBufferMemory) MemoryVariables() []string {
 	return []string{c.MemoryKey}
 }
 
-func (c *ConversationStringBufferMemory) LoadMemoryVariables(inputs map[string]interface{}) map[string]string {
-	return map[string]string{c.MemoryKey: c.Buffer}
+func (c *ConversationStringBufferMemory) LoadMemoryVariables(inputs map[string]interface{}) (map[string]string, error) {
+	return map[string]string{c.MemoryKey: c.Buffer}, nil
 }
 
 func (c *ConversationStringBufferMemory) SaveContext(inputs map[string]interface{}, outputs map[string]string) {

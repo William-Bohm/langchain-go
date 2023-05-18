@@ -2,7 +2,7 @@ package callbacks
 
 import (
 	"fmt"
-	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
+	"github.com/William-Bohm/langchain-go/langchain-go/agent/agentSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
 	"strings"
 )
@@ -131,8 +131,8 @@ func (o *OpenAICallbackHandler) OnToolError(err error, kwargs map[string]interfa
 func (o *OpenAICallbackHandler) OnText(text string, color string, end string, kwargs map[string]interface{}) {
 }
 
-func (o *OpenAICallbackHandler) OnAgentAction(action callbackSchema.AgentAction, kwargs map[string]interface{}) {
+func (o *OpenAICallbackHandler) OnAgentAction(action agentSchema.AgentAction, kwargs map[string]interface{}) {
 }
 
-func (o *OpenAICallbackHandler) OnAgentFinish(finish callbackSchema.AgentFinish, color string, kwargs map[string]interface{}) {
+func (o *OpenAICallbackHandler) OnAgentFinish(finish agentSchema.AgentFinish, color string, kwargs map[string]interface{}) {
 }
