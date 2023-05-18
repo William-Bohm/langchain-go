@@ -176,8 +176,3 @@ func (g *GoogleDriveLoader) Load() ([]Document, error) {
 		return g.LoadFileFromIDs()
 	}
 }
-
-type Document struct {
-	Content  string
-	Metadata string
-}

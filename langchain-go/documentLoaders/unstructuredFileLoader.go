@@ -21,6 +21,16 @@ type UnstructuredFileIOLoader struct {
 	File interface{}
 }
 
+func NewUnstructuredFileLoader(filePath string, mode string, unstructuredKwargs map[string]interface{}) UnstructuredFileLoader {
+	return UnstructuredFileLoader{
+		UnstructuredBaseLoader: UnstructuredBaseLoader{
+			Mode:               mode,
+			UnstructuredKwargs: unstructuredKwargs,
+		},
+		FilePath: filePath,
+	}
+}
+
 func SatisfiesMinUnstructuredVersion(minVersion string) bool {
 	unstructuredVersion := "0.6.0"
 	minVersionElements := strings.Split(minVersion, ".")
