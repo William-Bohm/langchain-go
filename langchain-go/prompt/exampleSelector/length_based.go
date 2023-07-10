@@ -62,8 +62,8 @@ func (lbs *LengthBasedExampleSelector) CalculateExampleTextLengths() ([]int, err
 	return exampleTextLengths, nil
 }
 
-func (lbs *LengthBasedExampleSelector) SelectExamples(inputVariables map[string]string) ([]map[string]interface{}, error) {
-	inputs := strings.Join(values(inputVariables), " ")
+func (lbs *LengthBasedExampleSelector) SelectExamples(inputVariables map[string]interface{}) ([]map[string]interface{}, error) {
+	inputs := strings.Join(lbs.values(inputVariables), " ")
 	remainingLength := lbs.MaxLength - lbs.GetTextLength(inputs)
 	i := 0
 	examples := []map[string]interface{}{}

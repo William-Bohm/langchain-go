@@ -2,25 +2,27 @@ package memory
 
 import (
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/chains"
 	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
-	"github.com/William-Bohm/langchain-go/langchain-go/memory/prompts"
+	"github.com/William-Bohm/langchain-go/langchain-go/prompt/promptSchema"
+	"github.com/William-Bohm/langchain-go/langchain-go/rootSchema"
 )
 
 type SummarizerMixin struct {
 	HumanPrefix       string
 	AIPrefix          string
 	LLM               llmSchema.BaseLanguageModel
-	Prompt            prompts.
-	SummaryMessageCls llmSchema.BaseMessage
+	Prompt            promptSchema.BasePromptTemplate
+	SummaryMessageCls rootSchema.BaseMessage
 }
 
-func (s *SummarizerMixin) PredictNewSummary(messages []llmSchema.BaseMessage, existingSummary string) (string, error) {
-	newLines, err := llmSchema.GetBufferString(messages, s.HumanPrefix, s.AIPrefix)
+func (s *SummarizerMixin) PredictNewSummary(messages []rootSchema.BaseMessageInterface, existingSummary string) (string, error) {
+	newLines, err := rootSchema.GetBufferString(messages, s.HumanPrefix, s.AIPrefix)
 	if err != nil {
 		return "", err
 	}
 
-	chain := llm.LLMChain{
+	chain := chains.LLMChain{
 		LLM:    s.LLM,
 		Prompt: s.Prompt,
 	}
@@ -50,7 +52,7 @@ func (c *ConversationSummaryMemory) LoadMemoryVariables(inputs map[string]interf
 	}, nil
 }
 
-func ValidatePromptInputVariables(prompt prompts.BasePromptTemplate) error {
+func ValidatePromptInputVariables(prompt promptSchema.BasePromptTemplate) error {
 	promptVariables := prompt.InputVariables()
 	expectedKeys := []string{"summary", "new_lines"}
 	if !equalStringSlices(promptVariables, expectedKeys) {

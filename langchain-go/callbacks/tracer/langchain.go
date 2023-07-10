@@ -140,7 +140,7 @@ func (bt *BaseLangChainTracer) LoadSession(sessionName string) (interface{}, err
 	}
 	defer resp.Body.Close()
 
-	var tracerSession interface{} // Replace interface{} with actual type of TracerSession
+	tracerSession := tracerSchema.NewTracerSession(sessionName, map[string]interface{}{})
 	err = json.NewDecoder(resp.Body).Decode(&tracerSession)
 	if err != nil {
 		log.Printf("Failed to decode response body: %v", err)

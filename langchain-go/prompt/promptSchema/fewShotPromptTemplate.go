@@ -19,8 +19,8 @@ type FewShotPromptTemplate struct {
 	ValidateTemplate bool
 }
 
-func NewFewShotPromptTemplate() *FewShotPromptTemplate {
-	return &FewShotPromptTemplate{
+func NewFewShotPromptTemplate(config map[string]interface{}) FewShotPromptTemplate {
+	return FewShotPromptTemplate{
 		ExampleSeparator: "\n\n",
 		Prefix:           "",
 		TemplateFormat:   "f-string",
@@ -45,10 +45,11 @@ func (fspt *FewShotPromptTemplate) CheckExamplesAndSelector() error {
 
 func (fspt *FewShotPromptTemplate) TemplateIsValid(partialVariables []string) error {
 	if fspt.ValidateTemplate {
+		inputVariables := map[string]string{"partialVariables": partialVariables, "inputVariables": fspt.InputVariables}
 		return CheckValidTemplate(
 			fspt.Prefix+fspt.Suffix,
 			fspt.TemplateFormat,
-			append(fspt.InputVariables, partialVariables...),
+			inputVariables,
 		)
 	}
 	return nil

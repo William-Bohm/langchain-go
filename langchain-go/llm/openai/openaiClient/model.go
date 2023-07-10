@@ -92,7 +92,7 @@ func IsValidModel(m Model) bool {
 	return false
 }
 
-func (m *Model) ModelNameToContextSize(modelname string) (int, error) {
+func (m Model) ModelNameToContextSize(modelname string) (int, error) {
 	/*
 		Calculate the maximum number of tokens possible to generate for a model.
 

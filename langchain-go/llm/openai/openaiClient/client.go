@@ -26,19 +26,24 @@ func (c *OpenAiClient) addHeaders(req *http.Request) {
 
 }
 
-func (c *OpenAiClient) Create(prompts []string, input map[string]interface{}) (llmSchema.ResponsePayload, error) {
+func (c *OpenAiClient) Create(prompts []string, input map[string]interface{}) ([]CompletionResponsePayload, error) {
 	var err error
+	var response []CompletionResponsePayload
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	requestPayload, err := c.createCompletionRequestPayload(prompts, input)
-	if err != nil {
-		return nil, err
-	}
-	response, err := c.BaseAIClient.Create(ctx, requestPayload)
-	if err != nil {
-		return nil, err
+	requestPayload, err := c.createCompletionRequestPayload(input)
+	for _, prompt := range prompts {
+		requestPayload.Prompt = prompt
+		if err != nil {
+			return nil, err
+		}
+		newResponse, err := c.BaseAIClient.Create(ctx, requestPayload)
+		response = append(response, newResponse.(CompletionResponsePayload))
+		if err != nil {
+			return nil, err
+		}
 	}
 	return response, err
 }
@@ -47,8 +52,8 @@ func (c *OpenAiClient) createCompletionResponsePayload() llmSchema.ResponsePaylo
 	return NewCompletionResponsePayload()
 }
 
-func (c *OpenAiClient) createCompletionRequestPayload(prompts []string, input map[string]interface{}) (*completionRequestPayload, error) {
-	payload := &completionRequestPayload{}
+func (c *OpenAiClient) createCompletionRequestPayload(input map[string]interface{}) (*CompletionRequestPayload, error) {
+	payload := &CompletionRequestPayload{}
 
 	for key, value := range input {
 		switch key {

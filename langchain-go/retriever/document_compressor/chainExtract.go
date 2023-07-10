@@ -29,7 +29,7 @@ func getDefaultChainExtractPrompt() (*promptSchema.PromptTemplate, error) {
 	outputParserMap := map[string]interface{}{"no_output_str": outputParser}
 	template := promptUtils.AddInputVariablesToPrompt(outputParserMap, chainExtractPromptTemplate)
 
-	promptTemplate, err := promptSchema.NewPromptTemplateFromTemplate(template, "default", false, outputParser, nil)
+	promptTemplate, err := promptSchema.NewPromptTemplateFromTemplate(template, "default", false, &outputParser, nil)
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,7 @@ import (
 type Callable func() string
 
 type BasePromptTemplate struct {
+	BasePromptTemplateInterface
 	InputVariables   []string
 	OutputParser     outputParserSchema.BaseOutputParser
 	PartialVariables map[string]interface{}
@@ -27,9 +28,17 @@ type BasePromptTemplateInterface interface {
 	Partial(kwargs map[string]interface{}) (BasePromptTemplate, error)
 	MergePartialAndUserVariables(kwargs map[string]interface{}) (map[string]interface{}, error)
 	Format(kwargs map[string]interface{}) (string, error) //  abastract
-	PromptType() string                                   //  abstract
+	GetPromptType() string                                //  abstract
 	ToDict(kwargs map[string]interface{}) (map[string]interface{}, error)
 	Save(filePath string) error
+}
+
+func (bpt *BasePromptTemplate) Format(kwargs map[string]interface{}) (string, error) {
+	return "not implemented", nil
+}
+
+func (bpt *BasePromptTemplate) GetPromptType() string {
+	return bpt.PromptType
 }
 
 func (bpt *BasePromptTemplate) ValidateVariableNames(values map[string]interface{}) (map[string]interface{}, error) {
@@ -38,10 +47,10 @@ func (bpt *BasePromptTemplate) ValidateVariableNames(values map[string]interface
 }
 
 func (bpt *BasePromptTemplate) FormatPrompt(kwargs map[string]interface{}) (PromptValue, error) {
-
+	return nil, nil
 }
 
-func (bpt *BasePromptTemplate) partial(kwargs map[string]interface{}) *BasePromptTemplate {
+func (bpt *BasePromptTemplate) Partial(kwargs map[string]interface{}) (BasePromptTemplate, error) {
 	promptDict := BasePromptTemplate{
 		InputVariables:   make([]string, 0, len(bpt.InputVariables)),
 		PartialVariables: make(map[string]interface{}),
@@ -63,10 +72,10 @@ func (bpt *BasePromptTemplate) partial(kwargs map[string]interface{}) *BasePromp
 		promptDict.PartialVariables[k] = v
 	}
 
-	return &promptDict
+	return promptDict, nil
 }
 
-func (bpt *BasePromptTemplate) MergePartialAndUserVariables(kwargs map[string]interface{}) map[string]interface{} {
+func (bpt *BasePromptTemplate) MergePartialAndUserVariables(kwargs map[string]interface{}) (map[string]interface{}, error) {
 	partialKwargs := make(map[string]interface{})
 	for k, v := range bpt.PartialVariables {
 		switch v := v.(type) {
@@ -83,7 +92,7 @@ func (bpt *BasePromptTemplate) MergePartialAndUserVariables(kwargs map[string]in
 		partialKwargs[k] = v
 	}
 
-	return partialKwargs
+	return partialKwargs, nil
 }
 func (bpt *BasePromptTemplate) ToDict(kwargs map[string]interface{}) (map[string]interface{}, error) {
 	// Assuming you have a separate method for getting the base dictionary

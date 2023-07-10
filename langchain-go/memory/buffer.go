@@ -101,7 +101,7 @@ func getBufferString(messages []rootSchema.BaseMessageInterface, humanPrefix str
 		if buffer != "" {
 			buffer += "\n"
 		}
-		buffer += fmt.Sprintf("%s: %s", prefix, message.Content())
+		buffer += fmt.Sprintf("%s: %s", prefix, message.GetContent())
 	}
 	return buffer
 }

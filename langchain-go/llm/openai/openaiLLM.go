@@ -22,14 +22,11 @@ type generatedResponse struct {
 	LogProbs     interface{} // This can be a more specific type if you know the structure of logprobs
 }
 
-type Generation struct {
-	Text           string
-	GenerationInfo map[string]interface{}
-}
-
-type openaiLLM struct {
+type OpenaiLLM struct {
 	llmSchema.BaseLLM
-	Model              *openaiClient.Model
+	llmSchema.BaseLanguageModel
+	Model              openaiClient.Model
+	Client             *openaiClient.OpenAiClient
 	Role               string `comment:"The role to pass to the BaseLanguageModel. ex. 'user', '"`
 	ModelKwargs        map[string]interface{}
 	Temperature        float64     `comment:"What sampling temperature to use."`
@@ -48,9 +45,12 @@ type openaiLLM struct {
 	Streaming          bool        `comment:"Whether to stream the results or not."`
 	AllowedSpecial     interface{} `comment:"Set of special tokens that are allowed."`
 	DisallowedSpecial  interface{} `comment:"Set of special tokens that are not allowed."`
+	CompletionTokens   float64
+	PromptTokens       float64
+	TotalTokens        float64
 }
 
-func (o *openaiLLM) GetNumTokensFromMessage(messages []rootSchema.BaseMessage) (int, error) {
+func (o *OpenaiLLM) GetNumTokensFromMessage(messages []rootSchema.BaseMessage) (int, error) {
 	var fullText string
 	for _, message := range messages {
 		fullText += message.Content
@@ -61,7 +61,7 @@ func (o *openaiLLM) GetNumTokensFromMessage(messages []rootSchema.BaseMessage) (
 	}
 	return tokens, nil
 }
-func (o *openaiLLM) GetNumTokensFromText(text string) (int, error) {
+func (o *OpenaiLLM) GetNumTokensFromText(text string) (int, error) {
 	tokens, err := openaiClient.GetNumTokensForText(text, o.Model)
 	if err != nil {
 		return 0, err
@@ -69,13 +69,13 @@ func (o *openaiLLM) GetNumTokensFromText(text string) (int, error) {
 	return tokens, nil
 }
 
-func (o *openaiLLM) sendRequest(payload *completionPayload, params map[string]interface{}) (map[string]interface{}, error) {
+func (o *OpenaiLLM) sendRequest(prompts []string) ([]openaiClient.CompletionResponsePayload, error) {
 	// TODO: add openaiClient to openAI struct and at initialization (NewOpenaiLLM)
 	// create request payload
 
 	// send request payload to openaiClient.create
 
-	var rawResponse map[string][]map[string]interface{}
+	var rawResponse []openaiClient.CompletionResponsePayload
 
 	// Define the retry options for the createCompletion function.
 	retryOpts := []retry.Option{
@@ -84,9 +84,10 @@ func (o *openaiLLM) sendRequest(payload *completionPayload, params map[string]in
 	}
 
 	// Wrap the createCompletion function with the retry package.
+	params := o.defaultParams()
 	err := retry.Do(
 		func() error {
-			response, err := o.Model.CreateCompletion(ctx, payload)
+			response, err := o.Client.Create(prompts, params)
 			if err != nil {
 				return err
 			}
@@ -103,7 +104,7 @@ func (o *openaiLLM) sendRequest(payload *completionPayload, params map[string]in
 }
 
 // 'choices' is responses
-func (o *openaiLLM) Generate(prompts []string, stop []string) (*llmSchema.llmSchema.LLMResult, error) {
+func (o *OpenaiLLM) Generate(prompts []string, stop []string) (*llmSchema.LLMResult, error) {
 	var err error
 	params := o.defaultParams()
 	subPrompts, err := o.GetSubPrompts(params, prompts, stop)
@@ -111,78 +112,52 @@ func (o *openaiLLM) Generate(prompts []string, stop []string) (*llmSchema.llmSch
 		return nil, err
 	}
 	generatedResponses := make([]generatedResponse, 0)
-	tokenUsage := make(map[string]int)
-
-	keys := []string{"completion_tokens", "prompt_tokens", "total_tokens"}
+	tokenUsage := make(map[string]float64)
 
 	for _, prompts := range subPrompts {
-		rawResponse, err := o.sendRequest(prompts).(map[string]interface{})
-		// get the text, finish reason, and log probs from the return value
-		if err != nil {
-			return &llmSchema.LLMResult{}, err
-		}
-		text, ok := rawResponse["generatedResponses"][0]["text"].(string)
-		if !ok {
-			return &llmSchema.LLMResult{}, fmt.Errorf("invalid text in response")
-		}
-		finishReason, ok := rawResponse["generatedResponses"][0]["finish_reason"].(string)
-		if !ok {
-			return &llmSchema.LLMResult{}, fmt.Errorf("invalid finish_reason in response")
-		}
-		logProbs := rawResponse["generatedResponses"][0]["logprobs"]
+		rawResponse, err := o.sendRequest(prompts)
+		for _, promptResponse := range rawResponse {
+			for _, choice := range promptResponse.Choices {
+				// get the text, finish reason, and log probs from the return value
+				if err != nil {
+					return &llmSchema.LLMResult{}, err
+				}
+				text := choice.Text
+				finishReason := choice.FinishReason
+				logProbs := choice.Logprobs
 
-		// get tokens
+				response := generatedResponse{
+					Text:         text,
+					FinishReason: finishReason,
+					LogProbs:     logProbs,
+				}
+				generatedResponses = append(generatedResponses, response)
+			}
 
-		response := generatedResponse{
-			Text:         text,
-			FinishReason: finishReason,
-			LogProbs:     logProbs,
+			o.updateTokenUsage(promptResponse.Usage.CompletionTokens, promptResponse.Usage.PromptTokens, promptResponse.Usage.TotalTokens) // Update token usage
 		}
-		generatedResponses = append(generatedResponses, response)
-
-		updateTokenUsage(keys, rawResponse, tokenUsage) // Update token usage
 	}
 
-	llmSchema.llmSchema.LLMResult, err := o.createllmSchema.LLMResult(generatedResponses, prompts, tokenUsage)
+	result, err := o.createllmSchema(generatedResponses, prompts, tokenUsage)
 	if err != nil {
 		return &llmSchema.LLMResult{}, err
 	}
 
-	return llmSchema.LLMResult, nil
+	return result, nil
 }
 
-func updateTokenUsage(keys []string, response map[string]interface{}, tokenUsage map[string]int) {
-	/*
-		update token usage.
-		if the key is not in tokenUsage, add it.
-		else, add the value to the existing value.
-	*/
-	usage, ok := response["usage"].(map[string]interface{})
-	if !ok {
-		return
-	}
-
-	for _, key := range keys {
-		value, ok := usage[key].(float64)
-		if !ok {
-			continue
-		}
-
-		intValue := int(value)
-		if _, exists := tokenUsage[key]; !exists {
-			tokenUsage[key] = intValue
-		} else {
-			tokenUsage[key] += intValue
-		}
-	}
+func (o *OpenaiLLM) updateTokenUsage(completionTokens float64, promoptTokens float64, totalTokens float64) {
+	o.PromptTokens = o.PromptTokens + promoptTokens
+	o.CompletionTokens = o.CompletionTokens + completionTokens
+	o.TotalTokens = o.TotalTokens + totalTokens
 }
 
-func (o *openaiLLM) createllmSchema.LLMResult(generatedResponses []generatedResponse, prompts []string, tokenUsage map[string]int) (*llmSchema.LLMResult, error) {
-	generations := make([][]Generation, len(prompts))
+func (o *OpenaiLLM) createllmSchema(generatedResponses []generatedResponse, prompts []string, tokenUsage map[string]float64) (*llmSchema.LLMResult, error) {
+	generations := make([][]llmSchema.Generation, len(prompts))
 
 	for i := range prompts {
 		subChoices := generatedResponses[i*o.N : (i+1)*o.N]
-		generation := make([]Generation, len(subChoices))
+		generation := make([]llmSchema.Generation, len(subChoices))
 
 		// TODO: add error handling to test if text is valid
 		for j, response := range subChoices {
@@ -195,7 +170,7 @@ func (o *openaiLLM) createllmSchema.LLMResult(generatedResponses []generatedResp
 				"logprobs":      logprobs,
 			}
 
-			generation[j] = Generation{
+			generation[j] = llmSchema.Generation{
 				Text:           text,
 				GenerationInfo: generationInfo,
 			}
@@ -217,7 +192,7 @@ func (o *openaiLLM) createllmSchema.LLMResult(generatedResponses []generatedResp
 
 // takes a list of prompt and groups them into batches of size BatchSize
 // this allows control over how many prompt are sent at a time to the API
-func (o *openaiLLM) GetSubPrompts(params map[string]interface{}, prompts []string, stop []string) ([][]string, error) {
+func (o *OpenaiLLM) GetSubPrompts(params map[string]interface{}, prompts []string, stop []string) ([][]string, error) {
 	var err error
 	if stop != nil {
 		if _, ok := params["stop"]; ok {
@@ -248,7 +223,7 @@ func (o *openaiLLM) GetSubPrompts(params map[string]interface{}, prompts []strin
 	return subPrompts, nil
 }
 
-func (o *openaiLLM) defaultParams() map[string]interface{} {
+func (o *OpenaiLLM) defaultParams() map[string]interface{} {
 	normalParams := map[string]interface{}{
 		"temperature":       o.Temperature,
 		"max_tokens":        o.MaxTokens,
@@ -259,13 +234,14 @@ func (o *openaiLLM) defaultParams() map[string]interface{} {
 		"best_of":           o.BestOf,
 		"request_timeout":   o.RequestTimeout,
 		"logit_bias":        o.LogitBias,
+		"streaming":         o.Streaming,
 	}
 	return mapTools.MergeMaps(normalParams, o.ModelKwargs)
 }
 
-func New(options ...Option) (*openaiLLM, error) {
-	o := &openaiLLM{
-		Model:              nil,
+func New(options ...Option) (*OpenaiLLM, error) {
+	o := &OpenaiLLM{
+		Model:              openaiClient.DefaultModel,
 		ModelKwargs:        nil,
 		Temperature:        0.7,
 		MaxTokens:          256,
@@ -295,16 +271,16 @@ func New(options ...Option) (*openaiLLM, error) {
 	return o, nil
 }
 
-func NewFromMap(attrs map[string]interface{}) (*openaiLLM, error) {
+func NewFromMap(attrs map[string]interface{}) (*OpenaiLLM, error) {
 	baseLLM, err := llmSchema.NewBaseLLM(attrs, "openai")
 	if err != nil {
 		logger.Error("Failed to create base BaseLanguageModel: %s", err)
 		return nil, err
 	}
 
-	o := &openaiLLM{
+	o := &OpenaiLLM{
 		BaseLLM:            *baseLLM,
-		Model:              nil,
+		Model:              openaiClient.DefaultModel,
 		ModelKwargs:        nil,
 		Temperature:        0.7,
 		MaxTokens:          256,
@@ -428,14 +404,14 @@ func NewFromMap(attrs map[string]interface{}) (*openaiLLM, error) {
 	return o, nil
 }
 
-func (o *openaiLLM) MaxTokensForPrompt(prompt string) (int, error) {
+func (o *OpenaiLLM) MaxTokensForPrompt(prompt string) (int, error) {
 	numTokens, err := openaiClient.GetNumTokensForText(prompt, o.Model)
 	if err != nil {
 		return -1, err
 	}
 
 	// get max context size for model by name
-	maxContextSize, err := ModelNameToContextSize(o.Model)
+	maxContextSize, err := o.Model.ModelNameToContextSize(string(o.Model))
 	if err != nil {
 		return -1, err
 	}
@@ -469,10 +445,10 @@ func (o *openaiLLM) MaxTokensForPrompt(prompt string) (int, error) {
  * respectively.
  */
 
-type Option func(*openaiLLM) error
+type Option func(*OpenaiLLM) error
 
 func Model(m string) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		model := openaiClient.DefaultModel
 		if m != "" {
 			var tempModel = openaiClient.Model(m)
@@ -482,68 +458,68 @@ func Model(m string) Option {
 			}
 			model = tempModel
 		}
-		o.Model = &model
+		o.Model = model
 		return nil
 	}
 }
 
 func ModelKwargs(mk map[string]interface{}) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.ModelKwargs = mk
 		return nil
 	}
 }
 
 func Temperature(t float64) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.Temperature = t
 		return nil
 	}
 }
 func MaxTokens(mt int) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.MaxTokens = mt
 		return nil
 	}
 }
 
 func TopP(tp float64) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.TopP = tp
 		return nil
 	}
 }
 
 func FrequencyPenalty(fp float64) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.FrequencyPenalty = fp
 		return nil
 	}
 }
 
 func PresencePenalty(pp float64) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.PresencePenalty = pp
 		return nil
 	}
 }
 
 func N(n int) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.N = n
 		return nil
 	}
 }
 
 func BestOf(bo int) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.BestOf = bo
 		return nil
 	}
 }
 
 func OpenaiApiKey(key string) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		if key == "" {
 			key = os.Getenv(openaiApiKeyEnvVarName)
 			if key == "" {
@@ -556,7 +532,7 @@ func OpenaiApiKey(key string) Option {
 }
 
 func OpenaiOrganization(org string) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		if org == "" {
 			org = os.Getenv(openaiOrganizationEnvVarName)
 			if org == "" {
@@ -569,49 +545,49 @@ func OpenaiOrganization(org string) Option {
 }
 
 func BatchSize(bs int) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.BatchSize = bs
 		return nil
 	}
 }
 
 func RequestTimeout(rt interface{}) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.RequestTimeout = rt
 		return nil
 	}
 }
 
 func LogitBias(lb interface{}) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.LogitBias = lb
 		return nil
 	}
 }
 
 func MaxRetries(mr int) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.MaxRetries = mr
 		return nil
 	}
 }
 
 func Streaming(s bool) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.Streaming = s
 		return nil
 	}
 }
 
 func AllowedSpecial(as interface{}) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.AllowedSpecial = as
 		return nil
 	}
 }
 
 func DisallowedSpecial(ds interface{}) Option {
-	return func(o *openaiLLM) error {
+	return func(o *OpenaiLLM) error {
 		o.DisallowedSpecial = ds
 		return nil
 	}

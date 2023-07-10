@@ -16,7 +16,7 @@ func load_llm_from_config(config map[string]interface{}) (BaseLanguageModel, err
 	llmType := config["LLMType"].(string)
 	switch llmType {
 	case "openai":
-		return openai.New(config)
+		return openai.NewFromMap(config)
 	default:
 		return nil, errors.New("invalid BaseLanguageModel type")
 	}

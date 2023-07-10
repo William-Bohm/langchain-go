@@ -2,18 +2,21 @@ package outputParser
 
 import (
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/chains"
+	"github.com/William-Bohm/langchain-go/langchain-go/llm/llmSchema"
 	"github.com/William-Bohm/langchain-go/langchain-go/outputParser/outputParserSchema"
+	"github.com/William-Bohm/langchain-go/langchain-go/prompt/promptSchema"
 )
 
 // OutputFixingParser represents a parser that tries to fix parsing errors
 type OutputFixingParser struct {
 	Parser     outputParserSchema.BaseOutputParser
-	RetryChain LLMChain // Assuming you have this LLMChain defined elsewhere
+	RetryChain chains.LLMChain // Assuming you have this LLMChain defined elsewhere
 }
 
 // FromLLM creates an instance of OutputFixingParser from an LLM
-func FromLLM(llm BaseLanguageModel, parser outputParserSchema.BaseOutputParser, prompt BasePromptTemplate) OutputFixingParser {
-	chain := NewLLMChain(llm, prompt) // Assuming you have NewLLMChain function defined elsewhere
+func FromLLM(llm llmSchema.BaseLanguageModel, parser outputParserSchema.BaseOutputParser, prompt promptSchema.BasePromptTemplate) OutputFixingParser {
+	chain := chains.NewLLMChain(llm, prompt) // Assuming you have NewLLMChain function defined elsewhere
 	return OutputFixingParser{
 		Parser:     parser,
 		RetryChain: chain,

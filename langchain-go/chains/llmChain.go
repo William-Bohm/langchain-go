@@ -14,6 +14,15 @@ type LLMChain struct {
 	OutputKey string
 }
 
+func NewLLMChain(prompt promptSchema.BasePromptTemplate, llm llmSchema.BaseLanguageModel) LLMChain {
+	return LLMChain{
+		BaseChain: "",
+		Prompt:    prompt,
+		LLM:       llm,
+		OutputKey: "None",
+	}
+}
+
 func (c *LLMChain) InputKeys() []string {
 	return c.Prompt.InputVariables
 }
@@ -22,14 +31,14 @@ func (c *LLMChain) OutputKeys() []string {
 	return []string{c.OutputKey}
 }
 
-func (c *LLMChain) Generate(inputList []map[string]interface{}) (llmSchema.LLMResult, error) {
+func (c *LLMChain) Generate(inputList []map[string]interface{}) (*llmSchema.LLMResult, error) {
 	prompts, stop, err := c.prepPrompts(inputList)
 	if err != nil {
-		return llmSchema.LLMResult{}, err
+		return nil, err
 	}
-	result, err := c.LLM.Generate(prompts, stop)
+	result, err := c.LLM.Generate(prompts, []string{stop})
 	if err != nil {
-		return llmSchema.LLMResult{}, err
+		return nil, err
 	}
 
 	return result, nil
@@ -74,7 +83,7 @@ func (c *LLMChain) Apply(inputList []map[string]interface{}) ([]map[string]strin
 	return c.CreateOutputs(response), nil
 }
 
-func (c *LLMChain) CreateOutputs(response llmSchema.LLMResult) []map[string]string {
+func (c *LLMChain) CreateOutputs(response *llmSchema.LLMResult) []map[string]string {
 	outputs := make([]map[string]string, len(response.Generations))
 	for i, generation := range response.Generations {
 		outputs[i] = map[string]string{c.OutputKey: generation[0].Text}

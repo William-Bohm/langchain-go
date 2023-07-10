@@ -10,19 +10,19 @@ type BaseCallbackHandler interface {
 	IgnoreLLM() bool
 	IgnoreChain() bool
 	IgnoreAgent() bool
-	OnLLMStart(serialized map[string]interface{}, prompts []string, args ...interface{}) (interface{}, error)
-	OnLLMNewToken(token string, args ...interface{}) (interface{}, error)
-	OnLLMEnd(response llmSchema.LLMResult, args ...interface{}) (interface{}, error)
-	OnLLMError(err error, args ...interface{}) (interface{}, error)
-	OnChainStart(serialized map[string]interface{}, inputs map[string]interface{}, args ...interface{}) (interface{}, error)
-	OnChainEnd(outputs map[string]interface{}, args ...interface{}) (interface{}, error)
-	OnChainError(err error, args ...interface{}) (interface{}, error)
-	OnToolStart(serialized map[string]interface{}, inputStr string, args ...interface{}) (interface{}, error)
-	OnToolEnd(output string, args ...interface{}) (interface{}, error)
-	OnToolError(err error, args ...interface{}) (interface{}, error)
-	OnText(text string, args ...interface{}) (interface{}, error)
-	OnAgentAction(action agentSchema.AgentAction, args ...interface{}) (interface{}, error)
-	OnAgentFinish(finish agentSchema.AgentFinish, args ...interface{}) (interface{}, error)
+	OnLLMStart(serialized map[string]interface{}, prompts []string, verbose bool, args ...interface{})
+	OnLLMNewToken(token string, verbose bool, args ...interface{})
+	OnLLMEnd(response llmSchema.LLMResult, verbose bool, args ...interface{})
+	OnLLMError(err error, verbose bool, args ...interface{})
+	OnChainStart(serialized map[string]interface{}, inputs map[string]interface{}, verbose bool, args ...interface{})
+	OnChainEnd(outputs map[string]interface{}, verbose bool, args ...interface{})
+	OnChainError(err error, verbose bool, args ...interface{})
+	OnToolStart(serialized map[string]interface{}, inputStr string, verbose bool, args ...interface{})
+	OnToolEnd(output string, verbose bool, args ...interface{})
+	OnToolError(err error, verbose bool, args ...interface{})
+	OnText(text string, verbose bool, args ...interface{})
+	OnAgentAction(action agentSchema.AgentAction, verbose bool, args ...interface{})
+	OnAgentFinish(finish agentSchema.AgentFinish, verbose bool, args ...interface{})
 }
 
 type BaseCallbackManager interface {
@@ -37,6 +37,31 @@ type CallbackManager struct {
 	handlers []BaseCallbackHandler
 }
 
+func (c *CallbackManager) AlwaysVerbose() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *CallbackManager) IgnoreLLM() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *CallbackManager) IgnoreChain() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *CallbackManager) IgnoreAgent() bool {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *CallbackManager) SetHandler(handler BaseCallbackHandler) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewCallbackManager(handlers []BaseCallbackHandler) *CallbackManager {
 	return &CallbackManager{handlers: handlers}
 }
@@ -45,7 +70,7 @@ func (c *CallbackManager) OnLLMStart(serialized map[string]interface{}, prompts 
 	for _, handler := range c.handlers {
 		if !handler.IgnoreLLM() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnLLMStart(serialized, prompts, args...)
+				handler.OnLLMStart(serialized, prompts, verbose, args...)
 			}
 		}
 	}
@@ -55,7 +80,7 @@ func (c *CallbackManager) OnLLMNewToken(token string, verbose bool, args ...inte
 	for _, handler := range c.handlers {
 		if !handler.IgnoreLLM() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnLLMNewToken(token, args)
+				handler.OnLLMNewToken(token, verbose, args)
 			}
 		}
 	}
@@ -65,7 +90,7 @@ func (c *CallbackManager) OnLLMEnd(response llmSchema.LLMResult, verbose bool, a
 	for _, handler := range c.handlers {
 		if !handler.IgnoreLLM() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnLLMEnd(response, args)
+				handler.OnLLMEnd(response, verbose, args)
 			}
 		}
 	}
@@ -75,17 +100,17 @@ func (c *CallbackManager) OnLLMError(err error, verbose bool, args ...interface{
 	for _, handler := range c.handlers {
 		if !handler.IgnoreLLM() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnLLMError(err, args)
+				handler.OnLLMError(err, verbose, args)
 			}
 		}
 	}
 }
 
-func (c *CallbackManager) OnChainStart(serialized map[string]interface{}, inputs map[string]interface{}, verbose bool, kwargs map[string]interface{}) {
+func (c *CallbackManager) OnChainStart(serialized map[string]interface{}, inputs map[string]interface{}, verbose bool, args ...interface{}) {
 	for _, handler := range c.handlers {
 		if !handler.IgnoreChain() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnChainStart(serialized, inputs, kwargs)
+				handler.OnChainStart(serialized, inputs, verbose, args)
 			}
 		}
 	}
@@ -95,7 +120,7 @@ func (c *CallbackManager) OnChainEnd(outputs map[string]interface{}, verbose boo
 	for _, handler := range c.handlers {
 		if !handler.IgnoreChain() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnChainEnd(outputs, args)
+				handler.OnChainEnd(outputs, verbose, args)
 			}
 		}
 	}
@@ -105,7 +130,7 @@ func (c *CallbackManager) OnChainError(err error, verbose bool, args ...interfac
 	for _, handler := range c.handlers {
 		if !handler.IgnoreChain() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnChainError(err, args)
+				handler.OnChainError(err, verbose, args)
 			}
 		}
 	}
@@ -115,7 +140,7 @@ func (c *CallbackManager) OnToolStart(serialized map[string]interface{}, input_s
 	for _, handler := range c.handlers {
 		if !handler.IgnoreAgent() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnToolStart(serialized, input_str, args)
+				handler.OnToolStart(serialized, input_str, verbose, args)
 			}
 		}
 	}
@@ -125,7 +150,7 @@ func (c *CallbackManager) OnAgentAction(action agentSchema.AgentAction, verbose 
 	for _, handler := range c.handlers {
 		if !handler.IgnoreAgent() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnAgentAction(action, args)
+				handler.OnAgentAction(action, verbose, args)
 			}
 		}
 	}
@@ -135,7 +160,7 @@ func (c *CallbackManager) OnToolEnd(output string, verbose bool, args ...interfa
 	for _, handler := range c.handlers {
 		if !handler.IgnoreAgent() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnToolEnd(output, args)
+				handler.OnToolEnd(output, verbose, args)
 			}
 		}
 	}
@@ -145,7 +170,7 @@ func (c *CallbackManager) OnToolError(err error, verbose bool, args ...interface
 	for _, handler := range c.handlers {
 		if !handler.IgnoreAgent() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnToolError(err, args)
+				handler.OnToolError(err, verbose, args)
 			}
 		}
 	}
@@ -154,7 +179,7 @@ func (c *CallbackManager) OnToolError(err error, verbose bool, args ...interface
 func (c *CallbackManager) OnText(text string, verbose bool, args ...interface{}) {
 	for _, handler := range c.handlers {
 		if verbose || handler.AlwaysVerbose() {
-			handler.OnText(text, args)
+			handler.OnText(text, verbose, args)
 		}
 	}
 }
@@ -163,7 +188,7 @@ func (c *CallbackManager) OnAgentFinish(finish agentSchema.AgentFinish, verbose 
 	for _, handler := range c.handlers {
 		if !handler.IgnoreAgent() {
 			if verbose || handler.AlwaysVerbose() {
-				handler.OnAgentFinish(finish, args)
+				handler.OnAgentFinish(finish, verbose, args)
 			}
 		}
 	}
@@ -218,8 +243,9 @@ func handlerIgnoreCondition(handler BaseCallbackHandler, conditionName string) b
 func handleEvent(handler BaseCallbackHandler, eventName string, args ...interface{}) {
 	switch eventName {
 	case "on_llm_start":
+
 		// assuming the first arg is of type map[string]interface{}, and second is of type []string
-		handler.OnLLMStart(args[0].(map[string]interface{}), args[1].([]string))
+		handler.OnLLMStart(args[0].(map[string]interface{}), args[1].([]string), args[2].(bool), args)
 	// Add other cases as per your events
 	default:
 		return

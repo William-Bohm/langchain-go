@@ -25,6 +25,7 @@ const (
 
 type BaseMessageInterface interface {
 	Type() MessageType
+	GetContent() string
 }
 
 type BaseMessage struct {
@@ -132,7 +133,7 @@ func GetBufferString(messages []BaseMessageInterface, prefixes ...string) (strin
 		default:
 			return "", fmt.Errorf("got unsupported message type: %v", m)
 		}
-		stringMessages = append(stringMessages, fmt.Sprintf("%s: %s", role, m.Content()))
+		stringMessages = append(stringMessages, fmt.Sprintf("%s: %s", role, m.GetContent()))
 	}
 
 	return strings.Join(stringMessages, "\n"), nil

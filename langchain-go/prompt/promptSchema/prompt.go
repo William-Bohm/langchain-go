@@ -53,6 +53,7 @@ func NewPromptTemplateFromFile(templateFile string, inputVariables []string, tem
 	}
 
 	templateStr := string(content)
+
 	return &PromptTemplate{
 		InputVariables:   inputVariables,
 		Template:         templateStr,

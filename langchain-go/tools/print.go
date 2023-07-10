@@ -18,11 +18,11 @@ var textColorMapping = map[string]string{
 	"white":   "37",
 }
 
-func PrintText(text string, color *string, end string) {
-	if color == nil {
+func PrintText(text string, color string, end string) {
+	if color == "nil" {
 		fmt.Print(text)
 	} else {
-		textToPrint := GetColoredText(text, *color)
+		textToPrint := GetColoredText(text, color)
 		fmt.Print(textToPrint)
 	}
 	fmt.Print(end)

@@ -3,6 +3,7 @@ package promptSchema
 import (
 	"encoding/json"
 	"errors"
+	"github.com/William-Bohm/langchain-go/langchain-go/outputParser/outputParserSchema"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"path/filepath"
@@ -55,13 +56,13 @@ func loadPromptFromConfig(config map[string]interface{}) (BasePromptTemplateInte
 		if err != nil {
 			return nil, err
 		}
-		return template, nil
+		return &template, nil
 	} else if configType.(string) == "few_shot" {
 		template, err := loadFewShotPrompt(config)
 		if err != nil {
 			return nil, err
 		}
-		return template, nil
+		return &template, nil
 	} else {
 		return nil, errors.New("loading " + configType.(string) + " prompt not supported")
 
@@ -106,6 +107,7 @@ func loadFewShotPrompt(config map[string]interface{}) (FewShotPromptTemplate, er
 	if err != nil {
 		return FewShotPromptTemplate{}, err
 	}
+	// TODO: make the config settings actually set setting for the template
 	return NewFewShotPromptTemplate(config), nil
 }
 
@@ -125,10 +127,10 @@ func loadPromptTemplate(config map[string]interface{}) (BasePromptTemplate, erro
 
 func newPromptTemplate(config map[string]interface{}) BasePromptTemplate {
 	template := BasePromptTemplate{
-		config["inputVariables"].([]string),
-		config["outputParser"],
-		config["partialVariables"].(map[string]interface{}),
-		config["promptType"].(string),
+		InputVariables:   config["inputVariables"].([]string),
+		OutputParser:     config["outputParser"].(outputParserSchema.BaseOutputParser),
+		PartialVariables: config["partialVariables"].(map[string]interface{}),
+		PromptType:       config["promptType"].(string),
 	}
 
 	return template

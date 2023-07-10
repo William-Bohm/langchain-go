@@ -6,7 +6,7 @@ import (
 )
 
 // optional openai endpoint settings
-type completionRequestPayload struct {
+type CompletionRequestPayload struct {
 	Model              string             `json:"model_name"`
 	Prompt             string             `json:"prompt"`
 	Temperature        float64            `json:"temperature,omitempty"`
@@ -28,12 +28,13 @@ type completionRequestPayload struct {
 	StopWords          []string           `json:"stop,omitempty"`
 }
 
-func (p *completionRequestPayload) ToJSON() ([]byte, error) {
+func (p *CompletionRequestPayload) ToJSON() ([]byte, error) {
 	return json.Marshal(p)
 }
 
 // open ai endpoint response
 type CompletionResponsePayload struct {
+	llmSchema.ResponsePayload
 	ID      string  `json:"id,omitempty"`
 	Object  string  `json:"object,omitempty"`
 	Created float64 `json:"created,omitempty"`

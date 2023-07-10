@@ -1,13 +1,13 @@
 package openaiClient
 
-func GetNumTokensForText(text string, model *Model) (int, error) {
+func GetNumTokensForText(text string, model Model) (int, error) {
 	/*
 		Calculate num tokens with tiktoken-go package.
 	*/
 	// TODO: make a better defualt value than "text-davinci-003"
 
 	// determine the correct encoder for the openAI model
-	enc, err := GetEncodingForModel(*model)
+	enc, err := GetEncodingForModel(model)
 	if err != nil {
 		enc, err = GetEncodingForModel("text-davinci-003")
 		if err != nil {

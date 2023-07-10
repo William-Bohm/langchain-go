@@ -53,14 +53,14 @@ func (b *BaseTool) ParseInput(toolInput interface{}) error {
 	return nil
 }
 
-func (b *BaseTool) Run(toolInput interface{}, verbose *bool, color string, kwargs map[string]interface{}) (string, error) {
+func (b *BaseTool) Run(toolInput interface{}, verbose bool, color string, kwargs map[string]interface{}) (string, error) {
 	err := b.ParseInput(toolInput)
 	if err != nil {
 		return "", err
 	}
 	verbose_ := b.Verbose
-	if !b.Verbose && verbose != nil {
-		verbose_ = *verbose
+	if !b.Verbose {
+		verbose_ = verbose
 	}
 	toolStartCallback := make(map[string]interface{})
 	toolStartCallback["verbose"] = verbose_
@@ -69,6 +69,7 @@ func (b *BaseTool) Run(toolInput interface{}, verbose *bool, color string, kwarg
 	b.CallbackManager.OnToolStart(
 		map[string]interface{}{"name": b.Name, "description": b.Description},
 		strings.Trim(strings.Replace(fmt.Sprint(toolInput), " ", ",", -1), "[]"),
+		verbose,
 		toolStartCallback,
 	)
 	var observation string
@@ -86,7 +87,7 @@ func (b *BaseTool) Run(toolInput interface{}, verbose *bool, color string, kwarg
 	toolErrorCallback := make(map[string]interface{})
 	toolErrorCallback["verbose"] = verbose_
 	if err != nil {
-		b.CallbackManager.OnToolError(err, toolErrorCallback)
+		b.CallbackManager.OnToolError(err, verbose, toolErrorCallback)
 		return "", err
 	}
 	callback := make(map[string]interface{})
@@ -94,12 +95,12 @@ func (b *BaseTool) Run(toolInput interface{}, verbose *bool, color string, kwarg
 	callback["verbose"] = verbose_
 	callback["name"] = b.Name
 	callback["args"] = kwargs
-	b.CallbackManager.OnToolEnd(observation, callback)
+	b.CallbackManager.OnToolEnd(observation, verbose, callback)
 	return observation, nil
 }
 
 func (b *BaseTool) Call(toolInput string) (string, error) {
-	return b.Run(toolInput, nil, "green", "green", map[string]interface{}{})
+	return b.Run(toolInput, true, "green", map[string]interface{}{})
 }
 
 func toArgsAndKwargs(runInput interface{}) ([]interface{}, map[string]interface{}) {

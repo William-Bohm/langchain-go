@@ -15,14 +15,17 @@ import (
 
 // BaseLanguageModel Abstract methods all BaseLanguageModel openaiClient's should define
 type BaseLanguageModel interface {
-	Generate(prompts []string, stop string) (LLMResult, error)
-	GetNumTokensFromMessage(messages []rootSchema.BaseMessageInterface) (int, error)
+	Generate(prompts []string, stop []string) (*LLMResult, error)
+	GetNumTokensFromMessage(messages []rootSchema.BaseMessage) (int, error)
 	GetNumTokensFromText(text string) (int, error)
 }
 
 type LLMResult struct {
 	Generations [][]Generation
 	LLMOutput   map[string]interface{}
+}
+
+type CompletionPayload struct {
 }
 
 type Generation struct {

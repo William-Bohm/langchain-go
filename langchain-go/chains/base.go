@@ -3,7 +3,9 @@ package chains
 import (
 	"errors"
 	"fmt"
+	"github.com/William-Bohm/langchain-go/langchain-go/callbacks"
 	"github.com/William-Bohm/langchain-go/langchain-go/callbacks/callbackSchema"
+	"github.com/William-Bohm/langchain-go/langchain-go/memory"
 	"github.com/William-Bohm/langchain-go/langchain-go/memory/memorySchema"
 	"path/filepath"
 	"reflect"
@@ -29,6 +31,16 @@ type BaseChain struct {
 	Memory          memorySchema.BaseMemory
 	CallbackManager callbackSchema.BaseCallbackManager
 	Verbose         bool
+}
+
+func NewDefaultBaseChain() BaseChain {
+	return BaseChain{
+		Memory: &memory.SimpleMemory{Memories: map[string]interface{}{}},
+		CallbackManager: callbackSchema.NewCallbackManager([]callbackSchema.BaseCallbackHandler{
+			callbacks.NewStdOutCallbackHandler("green"),
+		}),
+		Verbose: true,
+	}
 }
 
 func (bc *BaseChain) ChainType() string {

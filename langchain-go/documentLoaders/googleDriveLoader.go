@@ -2,6 +2,7 @@ package documentLoaders
 
 import (
 	"context"
+	"github.com/William-Bohm/langchain-go/langchain-go/documentStore/documentSchema"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
@@ -49,11 +50,11 @@ func (g *GoogleDriveLoader) LoadCredentials() (*http.Client, error) {
 	return client, nil
 }
 
-func (g *GoogleDriveLoader) LoadSheetFromID(id string) ([]Document, error) {
-	var documents []Document
+func (g *GoogleDriveLoader) LoadSheetFromID(id string) ([]documentSchema.Document, error) {
+	var documents []documentSchema.Document
 	client, err := g.LoadCredentials()
 	if err != nil {
-		return []Document{}, err
+		return []documentSchema.Document{}, err
 	}
 	service, err := sheets.New(client)
 	if err != nil {
@@ -64,38 +65,38 @@ func (g *GoogleDriveLoader) LoadSheetFromID(id string) ([]Document, error) {
 		return nil, err
 	}
 	for _, sheet := range response.Sheets {
-		documents = append(documents, Document{Content: sheet.Properties.Title, Metadata: response.Properties.Title})
+		documents = append(documents, documentSchema.Document{PageContent: sheet.Properties.Title, Metadata: map[string]interface{}{"id": response.Properties.Title}})
 	}
 	return documents, nil
 }
 
-func (g *GoogleDriveLoader) LoadDocumentFromID(id string) (Document, error) {
+func (g *GoogleDriveLoader) LoadDocumentFromID(id string) (documentSchema.Document, error) {
 	client, err := g.LoadCredentials()
 	if err != nil {
-		return Document{}, err
+		return documentSchema.Document{}, err
 	}
 	service, err := drive.New(client)
 	if err != nil {
-		return Document{}, err
+		return documentSchema.Document{}, err
 	}
 	file, err := service.Files.Get(id).SupportsAllDrives(true).Do()
 	if err != nil {
-		return Document{}, err
+		return documentSchema.Document{}, err
 	}
-	return Document{Content: file.Name, Metadata: file.Id}, nil
+	return documentSchema.Document{PageContent: file.Name, Metadata: map[string]interface{}{"id": file.Id}}, nil
 }
 
-func (g *GoogleDriveLoader) LoadDocumentsFromFolder(folderID string) ([]Document, error) {
+func (g *GoogleDriveLoader) LoadDocumentsFromFolder(folderID string) ([]documentSchema.Document, error) {
 	client, err := g.LoadCredentials()
 	if err != nil {
-		return []Document{}, err
+		return []documentSchema.Document{}, err
 	}
 	service, err := drive.New(client)
 	if err != nil {
 		return nil, err
 	}
 	request := service.Files.List().Q("'" + folderID + "' in parents").IncludeItemsFromAllDrives(true).SupportsAllDrives(true)
-	var documents []Document
+	var documents []documentSchema.Document
 	err = request.Pages(context.Background(), func(page *drive.FileList) error {
 		for _, file := range page.Files {
 			if file.MimeType == "application/vnd.google-apps.document" {
@@ -120,8 +121,8 @@ func (g *GoogleDriveLoader) LoadDocumentsFromFolder(folderID string) ([]Document
 	return documents, nil
 }
 
-func (g *GoogleDriveLoader) LoadDocumentsFromIDs() ([]Document, error) {
-	var documents []Document
+func (g *GoogleDriveLoader) LoadDocumentsFromIDs() ([]documentSchema.Document, error) {
+	var documents []documentSchema.Document
 	for _, documentID := range g.DocumentIDs {
 		document, err := g.LoadDocumentFromID(documentID)
 		if err != nil {
@@ -132,10 +133,10 @@ func (g *GoogleDriveLoader) LoadDocumentsFromIDs() ([]Document, error) {
 	return documents, nil
 }
 
-func (g *GoogleDriveLoader) LoadFileFromID(id string) ([]Document, error) {
+func (g *GoogleDriveLoader) LoadFileFromID(id string) ([]documentSchema.Document, error) {
 	client, err := g.LoadCredentials()
 	if err != nil {
-		return []Document{}, err
+		return []documentSchema.Document{}, err
 	}
 	service, err := drive.New(client)
 	if err != nil {
@@ -152,11 +153,11 @@ func (g *GoogleDriveLoader) LoadFileFromID(id string) ([]Document, error) {
 		return nil, err
 	}
 	content := string(body)
-	return []Document{Document{Content: content, Metadata: id}}, nil
+	return []documentSchema.Document{documentSchema.Document{PageContent: content, Metadata: map[string]interface{}{"id": id}}}, nil
 }
 
-func (g *GoogleDriveLoader) LoadFileFromIDs() ([]Document, error) {
-	var documents []Document
+func (g *GoogleDriveLoader) LoadFileFromIDs() ([]documentSchema.Document, error) {
+	var documents []documentSchema.Document
 	for _, fileID := range g.FileIDs {
 		document, err := g.LoadFileFromID(fileID)
 		if err != nil {
@@ -167,7 +168,7 @@ func (g *GoogleDriveLoader) LoadFileFromIDs() ([]Document, error) {
 	return documents, nil
 }
 
-func (g *GoogleDriveLoader) Load() ([]Document, error) {
+func (g *GoogleDriveLoader) Load() ([]documentSchema.Document, error) {
 	if g.FolderID != "" {
 		return g.LoadDocumentsFromFolder(g.FolderID)
 	} else if g.DocumentIDs != nil {
